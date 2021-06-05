@@ -32,7 +32,7 @@ typedef float               fp32;
 typedef double              fp64;
 typedef unsigned char       bool_t;
 typedef unsigned char       RETURN_STATUS;
-
+#define IS_ZEROS(value)     (fabs(value) < 0.0000001 ? 1 : 0)
 typedef enum
 {
     RET_FAIL    = 0,

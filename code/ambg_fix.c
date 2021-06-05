@@ -1,11 +1,11 @@
 #include "ambg_fix.h"
 
-int32_t LDL_decomposition(matrix_t *A_in, matrix_t *L, matrix_t *D)
+int8_t LDL_decomposition(matrix_t *A_in, matrix_t *L, matrix_t *D)
 {
     uint32_t dem = A_in->col;
     if (dem <= 0)
     {
-        return -1;
+        return 0;
     }
 
     matrix_t B;
@@ -21,7 +21,7 @@ int32_t LDL_decomposition(matrix_t *A_in, matrix_t *L, matrix_t *D)
             if (A->element[i][j] != A->element[j][i])
             {
                 matrix_free(A);
-                return -1;
+                return 0;
             }
         }
     }
@@ -58,5 +58,80 @@ int32_t LDL_decomposition(matrix_t *A_in, matrix_t *L, matrix_t *D)
             }
         }
     }
-    return 0;
+    return 1;
+}
+static int8_t lower_matrix_check(const matrix_t *L)
+{
+    if (!L->is_valid || L->row <= 0 || L->col <= 0 || L->col != L->row)
+    {
+        return -1;
+    }
+    uint32_t i = 0;
+    uint32_t j = 0;
+    for (; i < L->row; ++i)
+    {
+        for (; j < L->col; ++j)
+        {
+            if (i == j)
+            {
+                fp64 tmp = L->element[i][j] - 1;
+                if (!IS_ZEROS(tmp))
+                {
+                    return 0;
+                }
+            }
+            else if (j > i)
+            {
+                if (!IS_ZEROS(L->element[i][j]))
+                {
+                    return 0;
+                }
+            }
+        }
+    }
+}
+static fp64 get_integer(fp64 a)
+{
+    fp64 tmp = floor(a);
+    fp64 frac = a - tmp;
+    
+    if (frac >= 0.5)
+    {
+        tmp += 1;
+    }
+
+    return tmp;
+}
+int8_t gauss_transform(matrix_t *L, matrix_t *Z)
+{
+    if (!lower_matrix_check(L))
+    {
+        return -1;
+    }
+
+    if (L->col <= 2)
+    {
+        return -1;
+    }
+    uint32_t col = 0;
+    uint32_t row = 0;
+    for (row = 1; row < L->row; ++row)
+    {
+        for (col = 0; col < row; ++col)
+        {
+            fp64 u = get_integer(L->element[row][col]);
+            if (!IS_ZEROS(u))
+            {
+                Z->element[row][col] = -u;
+                uint32_t i = 0;
+                for (i = row; i < L->row; ++i)
+                {
+                    L->element[i][col] -= u * L->element[i][row];
+                }
+            }
+        }
+    }
+
+    return 1;
+
 }
